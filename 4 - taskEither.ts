@@ -11,10 +11,10 @@ import {
   WeatherPrediction,
 } from './1 - pipe';
 import { getWeatherPrediction } from './2 - task';
+
 /**
  * So, lets combine either and task either!
  *  */
-
 export const getDBRequestTask =
   <T>(data: T): Task<T> =>
   () =>
@@ -38,6 +38,21 @@ export const getWeatherPredictionTask =
   (_location: LocationId): TaskEither<Error, WeatherPrediction> =>
     dbCall(getWeatherPrediction(date));
 
+const shouldTakeUmbrellaFull = (req: ApiRequest, res: ApiResponse) =>
+  pipe(
+    taskEither.of(req.query.personId),
+    (idTE) => taskEither.chain(getLocationTask)(idTE),
+    (locationTE) =>
+      taskEither.chain(getWeatherPredictionTask(today()))(locationTE),
+    (predictionTE) =>
+      taskEither.orElse((error) => {
+        // if error happens inside any step of the chain, execution will go right here
+        console.log(error, 'error happened during request processing');
+        return taskEither.right(void 0);
+      })(predictionTE)
+  );
+
+// or shorter:
 const shouldTakeUmbrella = (req: ApiRequest, res: ApiResponse) =>
   pipe(
     taskEither.of(req.query.personId),
@@ -49,3 +64,5 @@ const shouldTakeUmbrella = (req: ApiRequest, res: ApiResponse) =>
       return taskEither.right(void 0);
     })
   );
+
+// so, TaskEither is a combination of Task and Either. This is lazy async computation that can go in two ways

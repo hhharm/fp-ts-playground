@@ -63,9 +63,19 @@ shouldTakeUmbrella = (req: ApiRequest, res: ApiResponse) => {
 };
 
 // looks ugly a little)) let's use fp-ts pipe: it take the result of previous combination and puts into next one
+const shouldTakeUmbrellaFull = (req: ApiRequest, res: ApiResponse) =>
+  pipe(
+    getLocation(req.query.personId),
+    (location) => getWeatherPredictionCurried(today())(location),
+    (weatherPrediction) => takeDecision(weatherPrediction)
+  );
+
+// and now let's remove excessive words. shouldTakeUmbrellaFull and shouldTakeUmbrella are exactly the same
 shouldTakeUmbrella = (req: ApiRequest, res: ApiResponse) =>
   pipe(
     getLocation(req.query.personId),
     getWeatherPredictionCurried(today()),
     takeDecision
   );
+
+// so, pipe is a function that takes result of the previous line and pass it to the next line

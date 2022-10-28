@@ -38,9 +38,20 @@ const getWeatherPredictionTask =
     getDBRequest(getWeatherPrediction(date));
 
 // now we can combine them using chain:
+const shouldTakeUmbrellaFull = (req: ApiRequest, res: ApiResponse) =>
+  pipe(
+    task.of(req.query.personId),
+    (personIdTask) => task.chain(getLocationTask)(personIdTask),
+    (locationTask) =>
+      task.chain(getWeatherPredictionTask(today()))(locationTask)
+  );
+
+// or more compact:
 shouldTakeUmbrella = (req: ApiRequest, res: ApiResponse) =>
   pipe(
     task.of(req.query.personId),
     task.chain(getLocationTask),
     task.chain(getWeatherPredictionTask(today()))
   );
+
+// so, Task is lazy async computation, it's the same as a function that returns Promise

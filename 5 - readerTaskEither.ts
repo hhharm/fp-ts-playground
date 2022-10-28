@@ -3,7 +3,7 @@ import { Task } from 'fp-ts/Task';
 import { TaskEither } from 'fp-ts/TaskEither';
 import { ReaderTaskEither } from 'fp-ts/ReaderTaskEither';
 import { pipe } from 'fp-ts/function';
-import { taskEither, readerTaskEither } from 'fp-ts';
+import { taskEither, readerTaskEither, reader } from 'fp-ts';
 import {
   ApiRequest,
   ApiResponse,
@@ -14,11 +14,21 @@ import {
 } from './1 - pipe';
 import { getWeatherPrediction } from './2 - task';
 import { getDBRequestTask } from './4 - taskEither';
+
 /**
  * Currently, result of execution of the function will be different depending on the date and db result.
  * It is great, but it makes code less testable.
  * Let's move these to dependency, so we could call the function with whatever time and db mock we want
  *  */
+
+// for that we'll need Reader from fp-ts
+// you can see it's defenition in documentation:
+// export interface Reader<R, A> {
+//   (r: R): A
+// }
+// simply saying it's function with context
+
+// this is Dependency Injection pattern but in functional way
 
 // lets start with defining context of the function
 
@@ -35,6 +45,15 @@ const context: ShouldTakeUmbrellaContext = {
 // we can inject this context inside taskEither and access it whenever we want
 // thing that allows it is called readerTaskEither - basically, it is taskEither that has some context
 
+let dbCallWithoutReader =
+  (context: ShouldTakeUmbrellaContext) =>
+  <T>(data: T): TaskEither<Error, T> =>
+    taskEither.tryCatch(context.getDbRequestTaskFn(data), (error) => {
+      console.error('some error has happened!', error);
+      return new Error('error');
+    });
+
+// and with reader:
 let dbCall = <T>(
   data: T
 ): ReaderTaskEither<ShouldTakeUmbrellaContext, Error, T> =>
@@ -122,3 +141,6 @@ const shouldTakeUmbrellaFailureTest = (req: ApiRequest, res: ApiResponse) =>
         )
     )
   );
+
+// so, ReaderTaskEither is combination of reader, task and either
+// this is lazy async computation that needs context and can go in two ways
